@@ -3,6 +3,7 @@ package Spark.Assignment3;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.stream.IntStream;
 import java.io.FileReader;
@@ -95,11 +96,15 @@ public class KNN {
 		 return rdd_str.map(new Function<String, double[]>(){
 			 public double[] call(String s){
 			    String[] splitVals = s.split(",");
+			    //System.out.println("The element is: " + splitVals.length);
 			    // one extra element to indentify which objects it is
-			    double[] vals = new double[splitVals.length+1];
-			    for(int i=0; i < splitVals.length; i++) {
+			    double[] vals = new double[splitVals.length];
+			    for(int i=0; i < splitVals.length-1; i++) {
 			    	vals[i] = Double.parseDouble(splitVals[i]);
-			    }		       
+			    }
+			    // get the last element of testing set data 
+			    // the last element means its object index
+			    vals[splitVals.length-1] = Double.parseDouble(splitVals[splitVals.length-1]);
 			    return vals;
 			 }
 		});
@@ -117,13 +122,10 @@ public class KNN {
 	
 	
 	// display java resilient distributed dataset
-	public static void RDD_Display_1D(JavaRDD<double[]> rdd) throws Exception {
-		rdd.foreach(new VoidFunction<double[]>(){
-			public void call(double[] d){
-				for( int i=0; i<d.length; i++){
-					System.out.format("%10.5f ", d[i]);
-				}
-				System.out.format("\n");
+	public static void RDD_Display_1D(JavaRDD<int[]> rdd) throws Exception {
+		rdd.foreach(new VoidFunction<int[]>(){
+			public void call(int[] d){
+				System.out.format("%2d ---> %2d\n ", d[0], d[1]);
 			}
 		});
 	}
@@ -166,33 +168,45 @@ public class KNN {
 		JavaRDD<double[]> testing_rdd_array = KNN.Get_Testing_Set_RDD_Double_Array(testing);
 		//KNN.RDD_Display_1D(training_rdd_array);
 		//KNN.RDD_Display_1D(testing_rdd_array);
-		JavaRDD<double[][]> KNN_TRj = testing_rdd_array.map(new Function<double[], double[][]>(){
-			public double[][] call(double[] d){
+		JavaRDD<int[]> KNN_Classification = testing_rdd_array.map(new Function<double[], int[]>(){
+			public int[] call(double[] d){
+				int[] KNN_Classification = new int[2];
+				
 				double distance = 0;
-				int width = training_array[0].length;
+				
+				// the width of training set data
+				// the last element of each row stands for its label
+				int w_training = training_array[0].length;
+				
+				// the width of testing set data
+				// the last element of each row stands for its object index 
+				int w_testing = d.length;
+				
+				KNN_Classification[0] = (int)d[w_testing-1];
 				
 				// three dimension variables
-				// 1 dimension: is the distance
-				// 2 dimension: label
-				// 3 dimension: object index
-				double[][] trj = new double[TrainingSetLineCnt][3];
+				// 1 dimension(0): is the distance
+				// 2 dimension(1): label
+				double[][] trj = new double[TrainingSetLineCnt][2];
 				for(int i=0; i<training_array.length; i++){
 					distance = 0;
-					for( int j = 0; j<width-1; j++){
+					for( int j = 0; j<w_training-1; j++){
 						distance += d[j]*training_array[i][j];
 					}
 					trj[i][0] = distance;
-					trj[i][1] = training_array[i][width-1];
-					trj[i][2] = d[width];
+					trj[i][1] = training_array[i][w_training-1];
 				}
 						
 				InsertSort(trj);
 				
-				double[] KNN_Classification = new double[2];
+				//for( int i=0; i<TrainingSetLineCnt; i++){
+				//	System.out.format("(%8.5f, %3.1f) ", trj[i][0], trj[i][1] );
+				//}
+				//System.out.format("\n");
 				
-				//VotingSystem(trj, k);
 				
-				return trj;	
+				KNN_Classification[1] = VotingSystem(trj, k);
+				return KNN_Classification;	
 			}
 			
 			// Insert sorting to get first k numbers
@@ -200,49 +214,61 @@ public class KNN {
 				for( int i=1; i<a.length; i++){
 					double temp_distc = a[i][0];
 					double temp_label = a[i][1];
-					double temp_index = a[i][2];
 					int j;
 					for( j=i-1; j>=0 && temp_distc<a[j][0];j--){
 						a[j+1][0] = a[j][0];
 						a[j+1][1] = a[j][1];
-						a[j+1][2] = a[j][2];
-						
 					}
 					a[j+1][0] = temp_distc;
 					a[j+1][1] = temp_label;
-					a[j+1][2] = temp_index;
 				}
 			}
 			
 			// voting system to get the final label
-			public void VotingSystem(double[][] a, double[] knn, int k){
-				/*
-				LinkedList<double> l = new LinkedList[k];
-				double[] label = new double[k];
-				 
-				for(int i=0; i<a.length; i++){
-					for( int j=0; j<k; j++){
-						if(IntStream.of(a[i]).anyMatch(x -> x == k)){
-							
-						}
-						
-					}
-				}
-				*/
+			public int VotingSystem(double[][] a, int k){
+				//System.out.println("The value of k: " + k);
 				
+				LinkedList<Double> l = new LinkedList<Double>();
+				int[] label_cnt = new int[k];
+				
+				for( int i=0; i<k; i++){
+					// if linkedlist is empty
+					if(l.isEmpty()){
+						// add current element in the linkedlist
+						l.add(a[i][1]);
+						//System.out.println("The current posi is: " + l.indexOf(a[i][1]));
+						// add 1 for corresponding element
+						label_cnt[l.indexOf(a[i][1])]++;
+						//System.out.println("The current label val: " + label_cnt[l.indexOf(a[i][1])]);
+					}
+					// if current element is not in l and l is not empty
+					else{
+						// if the element is in the 
+						if(l.contains(a[i][1])){
+							label_cnt[l.indexOf(a[i][1])]++;
+							//System.out.println("The another label val: " + label_cnt[l.indexOf(a[i][1])]);
+						} else {
+							l.add(a[i][1]);
+							label_cnt[l.indexOf(a[i][1])]++;
+							//System.out.println("The third label val: " + label_cnt[l.indexOf(a[i][1])]);
+						}		
+					}	
+				}
+				
+				int max_index = -1;
+				int index = 0;
+				for(int i=0; i<label_cnt.length; i++){
+					if(label_cnt[i]>max_index){
+						max_index = label_cnt[i];
+						index = i;
+					}	
+				}
+				return (l.get(index)).intValue();
 			}	
 		});
-		
-		
-		
-		
-		
-		
-		KNN.RDD_Display_2D(KNN_TRj);
-		
-		
-		
-
+				
+		System.out.println("Obj index ---> label ");
+		KNN.RDD_Display_1D(KNN_Classification);
 		sc.close();	
 	}
 }
