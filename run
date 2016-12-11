@@ -1,0 +1,1 @@
+spark-submit --class Spark.Assignment3.KNN --master local[4] target/Assignment3-0.0.1-SNAPSHOT.jar training_set.txt testing_set.txt 8 > log
