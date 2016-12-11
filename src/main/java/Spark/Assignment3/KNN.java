@@ -1,8 +1,10 @@
 package Spark.Assignment3;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
-
+import java.util.Map;
+import java.util.stream.IntStream;
 import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.LineNumberReader;
@@ -188,9 +190,7 @@ public class KNN {
 				
 				double[] KNN_Classification = new double[2];
 				
-				VotingSystem(trj, k);
-				
-				
+				//VotingSystem(trj, k);
 				
 				return trj;	
 			}
@@ -216,16 +216,27 @@ public class KNN {
 			
 			// voting system to get the final label
 			public void VotingSystem(double[][] a, double[] knn, int k){
+				/*
+				LinkedList<double> l = new LinkedList[k];
+				double[] label = new double[k];
+				 
 				for(int i=0; i<a.length; i++){
 					for( int j=0; j<k; j++){
+						if(IntStream.of(a[i]).anyMatch(x -> x == k)){
+							
+						}
 						
 					}
 				}
+				*/
 				
-			}
-			
-			
+			}	
 		});
+		
+		
+		
+		
+		
 		
 		KNN.RDD_Display_2D(KNN_TRj);
 		
