@@ -147,27 +147,18 @@ public class KNN {
 		// get testing set
 		double[][] training_array = KNN.ReadDataSet(args[0], GetLineCount(args[0]));
 		int TrainingSetLineCnt = GetLineCount(args[0]);
-		int TestingSetLineCnt = GetLineCount(args[1]);
+		//int TestingSetLineCnt = GetLineCount(args[1]);
 		
 		//double[][] testing_array = KNN.ReadDataSet(args[1], GetLineCount(args[1]));
 		
 		int k = Integer.parseInt(args[2]);
-		//System.out.println("The value of K is: " + k);
-		//KNN.Display(testing_array);
-		
-		//System.out.println("****************************************************");
 		
 		SparkConf conf = new SparkConf().setAppName("KNN Spark");
 		JavaSparkContext sc = new JavaSparkContext(conf);
 		
 		// read the training set
-		//JavaRDD<String> training = sc.textFile(args[0]);
 		JavaRDD<String> testing = sc.textFile(args[1]);
-		
-		//JavaRDD<double[]> training_rdd_array = KNN.Get_RDD_Double_Array(training);
 		JavaRDD<double[]> testing_rdd_array = KNN.Get_Testing_Set_RDD_Double_Array(testing);
-		//KNN.RDD_Display_1D(training_rdd_array);
-		//KNN.RDD_Display_1D(testing_rdd_array);
 		JavaRDD<int[]> KNN_Classification = testing_rdd_array.map(new Function<double[], int[]>(){
 			public int[] call(double[] d){
 				int[] KNN_Classification = new int[2];
@@ -188,7 +179,7 @@ public class KNN {
 				// 1 dimension(0): is the distance
 				// 2 dimension(1): label
 				double[][] trj = new double[TrainingSetLineCnt][2];
-				for(int i=0; i<training_array.length; i++){
+				for(int i=0; i<training_array.length-1; i++){
 					distance = 0;
 					for( int j = 0; j<w_training-1; j++){
 						distance += d[j]*training_array[i][j];
@@ -198,13 +189,6 @@ public class KNN {
 				}
 						
 				InsertSort(trj);
-				
-				//for( int i=0; i<TrainingSetLineCnt; i++){
-				//	System.out.format("(%8.5f, %3.1f) ", trj[i][0], trj[i][1] );
-				//}
-				//System.out.format("\n");
-				
-				
 				KNN_Classification[1] = VotingSystem(trj, k);
 				return KNN_Classification;	
 			}
@@ -225,9 +209,7 @@ public class KNN {
 			}
 			
 			// voting system to get the final label
-			public int VotingSystem(double[][] a, int k){
-				//System.out.println("The value of k: " + k);
-				
+			public int VotingSystem(double[][] a, int k){		
 				LinkedList<Double> l = new LinkedList<Double>();
 				int[] label_cnt = new int[k];
 				
@@ -236,21 +218,17 @@ public class KNN {
 					if(l.isEmpty()){
 						// add current element in the linkedlist
 						l.add(a[i][1]);
-						//System.out.println("The current posi is: " + l.indexOf(a[i][1]));
 						// add 1 for corresponding element
 						label_cnt[l.indexOf(a[i][1])]++;
-						//System.out.println("The current label val: " + label_cnt[l.indexOf(a[i][1])]);
 					}
 					// if current element is not in l and l is not empty
 					else{
 						// if the element is in the 
 						if(l.contains(a[i][1])){
 							label_cnt[l.indexOf(a[i][1])]++;
-							//System.out.println("The another label val: " + label_cnt[l.indexOf(a[i][1])]);
 						} else {
 							l.add(a[i][1]);
 							label_cnt[l.indexOf(a[i][1])]++;
-							//System.out.println("The third label val: " + label_cnt[l.indexOf(a[i][1])]);
 						}		
 					}	
 				}
@@ -267,7 +245,7 @@ public class KNN {
 			}	
 		});
 				
-		System.out.println("Obj index ---> label ");
+		System.out.println("Obj #  label ");
 		KNN.RDD_Display_1D(KNN_Classification);
 		sc.close();	
 	}
