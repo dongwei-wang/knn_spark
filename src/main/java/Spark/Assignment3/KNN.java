@@ -119,8 +119,6 @@ public class KNN {
 		}
 	}
 	
-	
-	
 	// display java resilient distributed dataset
 	public static void RDD_Display_1D(JavaRDD<int[]> rdd) throws Exception {
 		rdd.foreach(new VoidFunction<int[]>(){
